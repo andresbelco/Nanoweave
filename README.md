@@ -1,2 +1,0 @@
-# Nanoweave
-Project repository
