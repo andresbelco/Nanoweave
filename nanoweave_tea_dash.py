@@ -368,7 +368,7 @@ C = {
     "blue":    "#0015ff",
     "amber":   "#f5a623",
     "red":     "#e05252",
-    "text":    "#f0f7f2",
+    "text":    "#f2a5f0",
     "text2":   "#ff83f1",
 }
 
@@ -1830,7 +1830,7 @@ def generate_pdf_report(
     lifespan       = lifespan       or 15
     rampup_months  = rampup_months  or 12
     hq_opex        = hq_opex        or 800_000
-    sell_price     = sell_price     or 900
+    sell_price     = sell_price     or 800
     dev_capex      = dev_capex      or 2_000_000
 
     r  = run_calculations(biomass_total, biomass_key, power_mode, elec_price,
@@ -1914,7 +1914,7 @@ def generate_pdf_report(
     # COVER
     # ══════════════════════════════════════════════════════════════════════
     cover_rows = [
-        [_logo(1.15, 0.71)],
+        [_logo(2, 2)],
         [_Sp(1, 6)],
         [_P("NANOWEAVE", st["ct"])],
         [_P("Upcycling Nature", _PS("CU", fontSize=11,
