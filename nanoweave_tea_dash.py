@@ -1438,15 +1438,14 @@ def update_franchise(
         for yr in years:
             mods = active_modules_in_year(yr)
             dev_income = mods * s["dev_income_per_mod"]
-            net = dev_income - hq_opex - (dev_capex / depr_years)
+            net = dev_income - hq_opex
             annual_net.append(net)
-        # Cumulative including initial CAPEX
-        cumulative = []
-        running = -dev_capex
-        for net in annual_net:
-            running += net
-            cumulative.append(running)
-        cf_data[label] = {"annual": annual_net, "cumulative": cumulative}
+            running = -dev_capex             # CAPEX hits once at year 0
+            cumulative = []
+    for net in annual_net:
+        running += net
+        cumulative.append(running)
+    cf_data[label] = {"annual": annual_net, "cumulative": cumulative}
 
     # ── Break-even year (mid scenario = +15%) ─────────────────────────────
     mid_cum = cf_data["+15%"]["cumulative"]
@@ -1886,9 +1885,10 @@ def generate_pdf_report(
 
     cf_by_sc = {}
     for lbl, s in fr_sc.items():
-        ann, cum, run = [], [], -dev_capex
+        ann, cum, run = [], []
+        run = -dev_capex
         for yr in years:
-            net = amods(yr)*s["dev_inc"] - hq_opex - dev_capex/depr_years
+            net = amods(yr)*s["dev_inc"] - hq_opex
             ann.append(net); run += net; cum.append(run)
         cf_by_sc[lbl] = {"ann": ann, "cum": cum}
 
