@@ -2286,7 +2286,7 @@ def generate_pdf_report(
     s.append(_HR(width=CW, thickness=1.5, color=_GL, spaceAfter=8))
     s.append(_dt_row([
         ["Parameter", "Value", "Source"],
-        ["Operating days/yr",     f"{OP_DAYS} days",          "35 days scheduled maintenance"],
+        ["Operating days/yr",     f"{OP_DAYS} days",          "12 days scheduled maintenance"],
         ["Process efficiency",     f"{PROC_EFFICIENCY*100:.0f}%", "Nanoweave Input Sheet"],
         ["Miscelaneus ratio",            "Other chemicals per ton",        "Lab experiment"],
         ["Misc price",            f"${MISC_PRICE}/ton",        "Chemicals and others"],
