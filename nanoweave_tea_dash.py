@@ -1866,6 +1866,7 @@ def generate_pdf_report(
         fr_sc[lbl] = dict(
             buy_t=buy_t, fr_rev=fr_rev, fr_ebitda=fr_ebitda,
             fr_marg=fr_marg, lic=lic, trade=trade, dev_inc=dev_inc,
+            fr_opex_per_mod=fr_total_opex_y,
             tot_fr_rev=tot_mods*fr_rev, tot_fr_opex=tot_mods*fr_total_opex_y,
             tot_fr_ebitda=tot_mods*fr_ebitda,
             tot_dev_trade=tot_mods*trade, tot_dev_lic=tot_mods*lic,
@@ -2196,7 +2197,7 @@ def generate_pdf_report(
             lbl,
             f"${sc['buy_t']:,.0f}",
             fmt_usd(sc["fr_rev"]),
-            fmt_usd(r1["total_opex"]),
+            fmt_usd(sc["fr_opex_per_mod"]),
             fmt_usd(sc["fr_ebitda"]),
             f"{sc['fr_marg']:.1f}%",
             fmt_usd(sc["trade"]),
@@ -2211,6 +2212,7 @@ def generate_pdf_report(
         f"Buy price basis: total OPEX/t = ${total_opex_t:,.0f}/t "
         f"(cash OPEX ${fr_cash_opex_y/r1['total_cell_yr']:,.0f}/t "
         f"+ lease ${fr_lease_y/r1['total_cell_yr']:,.0f}/t). "
+        f"Depreciation excluded — replaced by lease payment. "
         f"Lease = {fmt_usd(fr_capex_mod)} CAPEX ÷ {lifespan} yrs = {fmt_usd(fr_lease_y)}/yr/module. "
         f"Market sell: ${sell_price}/t.",
         st["cap"],
