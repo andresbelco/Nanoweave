@@ -114,14 +114,12 @@ EQUIPMENT = [
     ("Plasma Torch 100kW",       200_000,    1,             "torch",      "Process Core", False),
     ("Double Disk Refiner",       70_000,    2,             "module",     "Process",      False),
     ("Flash Dryer (steam)",       35_000,    2,             "module",     "Process",      False),
-    ("Boiler (CHP)",             500_000,    1,             "module",     "CHP System",   True),   # 1 per module · $500K · CHP/Hybrid only
-    ("Steam Turbine (CHP)",      500_000,    1,             "module",     "CHP System",   True),   # 1 per module · $500K · CHP/Hybrid only
+    ("Boiler (CHP)",             500_000,    0.75,          "module",     "CHP System",   True),   # 0.75 per module · $500K · CHP/Hybrid only
+    ("Steam Turbine (CHP)",      500_000,    0.75,          "module",     "CHP System",   True),   # 0.75 per module · $500K · CHP/Hybrid only
     ("Cellulose Reactor",        250_000,    1,             "module",     "Process",      False),
-    ("Plant Electrical System",  250_000,    1,             "site",       "Site Fixed",   False),
-    ("Tanks",                     30_000,    1,             "site",       "Site Fixed",   False),
-    ("Conveyors",                 20_000,    1,             "site",       "Site Fixed",   False),
-    ("Screens",                   15_000,    1,             "site",       "Site Fixed",   False),
-]
+    ("Plant fixed Infra",        700_000,    1,             "site",       "Site Fixed",   False),  # 1 per module, Electrical system, tanks, conveyors, and redundancy power supply 
+    ("Construction",             500_000,    1,             "site",       "Site Fixed",   False),  # 200m2 biomass conditioning and preparation, Warehouse 250m2, Permits, Processing plant 100m2
+    ]
 
 # Energy per 50TPD module — from Output Sheet
 # Flash dryer uses residual CHP steam → NOT charged as electricity
@@ -137,13 +135,13 @@ CHP_ELEC_EFF = 0.20   # 20% of thermal → electricity
 CHP_HEAT_EFF = 0.50   # 50% of thermal → heat (flash drying + feedstock drying)
 
 # OPEX constants — from Key Figures & Output Sheets
-OP_DAYS          = 330       # operating days/year (35 days scheduled maintenance)
+OP_DAYS          = 300       # operating days/year (12 days scheduled maintenance)
 PROC_EFFICIENCY  = 0.80      # process efficiency [Input Sheet]
 LABOR_PER_MODULE = 350_000   # $/yr — 8 operators + supervisor [Output Sheet]
-NAOH_T_PER_MOD   = 1.977     # ton NaOH/day per module [Cellulose Process Sheet]
-NAOH_PRICE       = 450       # $/ton
-WATER_PER_MOD    = 257.25    # $/day per module [Output Sheet — 99% water recovery]
-
+MISC_T_PER_MOD   = 1.5       # ton Miscelaneus costs/day per module [Cellulose Process Sheet]
+MISC_PRICE       = 490       # $/ton
+WATER_PER_MOD    = 257.25    # $/day water treatment per module [Output Sheet — 99% water recovery]
+LOG_SELL         = 500       #$/day in transport and logistics    
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPERS
@@ -263,12 +261,12 @@ def run_calculations(biomass_total, biomass_key, power_mode, elec_price,
 
     # ── OPEX ──────────────────────────────────────────────────────────────
     energy_yr    = n_modules * TOTAL_ENERGY_MODULE * OP_DAYS * elec_cost
-    naoh_yr      = n_modules * NAOH_T_PER_MOD * NAOH_PRICE * OP_DAYS
+    misc_yr      = n_modules * MISC_T_PER_MOD * MISC_PRICE * OP_DAYS
     labor_yr     = n_modules * LABOR_PER_MODULE
     water_yr     = n_modules * WATER_PER_MOD * OP_DAYS
     depr_yr      = capex_process / depr_years
     logistics_yr = logistics_cost * biomass_process * OP_DAYS
-    total_opex   = energy_yr + naoh_yr + labor_yr + water_yr + depr_yr + logistics_yr
+    total_opex   = energy_yr + misc_yr + labor_yr + water_yr + depr_yr + logistics_yr
     opex_per_t   = total_opex / total_cell_yr if total_cell_yr > 0 else 0
 
     # ── Revenue & Margin ──────────────────────────────────────────────────
@@ -323,7 +321,7 @@ def run_calculations(biomass_total, biomass_key, power_mode, elec_price,
         "capex_intensity":  capex_intensity,
         # opex
         "energy_yr":        energy_yr,
-        "naoh_yr":          naoh_yr,
+        "misc_yr":          misc_yr,
         "labor_yr":         labor_yr,
         "water_yr":         water_yr,
         "depr_yr":          depr_yr,
@@ -1040,7 +1038,7 @@ def update_all(biomass_total, biomass_key, power_mode, elec_price,
     # ── OPEX stacked bar ──────────────────────────────────────────────────
     opex_items = {
         "Energy":       r["energy_yr"],
-        "NaOH":         r["naoh_yr"],
+        "Miscelanous":  r["misc_yr"],
         "Labor":        r["labor_yr"],
         "Water":        r["water_yr"],
         "Logistics":    r["logistics_yr"],
@@ -1097,9 +1095,9 @@ def update_all(biomass_total, biomass_key, power_mode, elec_price,
         measure=["absolute","absolute","total",
                  "relative","relative","relative","relative","relative","relative","total"],
         x=["Cellulose","Org. Fertilizer","Revenue",
-           "−Energy","−NaOH","−Labor","−Water","−Logistics","−Deprec.","EBITDA"],
+           "−Energy","−Misc","−Labor","−Water","−Logistics","−Deprec.","EBITDA"],
         y=[r["rev_cell_mid"], r["rev_fert"], 0,
-           -r["energy_yr"], -r["naoh_yr"], -r["labor_yr"],
+           -r["energy_yr"], -r["misc_yr"], -r["labor_yr"],
            -r["water_yr"],  -r["logistics_yr"], -r["depr_yr"], 0],
         connector_line=dict(color=C["border"]),
         increasing_marker_color=C["green"],
@@ -1167,7 +1165,7 @@ def update_all(biomass_total, biomass_key, power_mode, elec_price,
         capex_s   = SITE_FIXED + nm * CAPEX_VAR
         ci_s      = capex_s / cy if cy > 0 else 0
         energy_s  = 0 if power_mode == "chp" else nm * TOTAL_ENERGY_MODULE * OP_DAYS * elec_price
-        opex_s    = (energy_s + nm*NAOH_T_PER_MOD*NAOH_PRICE*OP_DAYS
+        opex_s    = (energy_s + nm*MISC_T_PER_MOD*MISC_PRICE*OP_DAYS
                      + nm*LABOR_PER_MODULE + nm*WATER_PER_MOD*OP_DAYS + capex_s/depr_years)
         ci_color  = C["green"] if ci_s < 600 else C["text"] if ci_s < 1200 else C["red"]
         margin_cells = []
@@ -1342,7 +1340,7 @@ def update_franchise(
     # simplicity — full lease cost recovered over the project lifetime).
     # This lease payment IS an annual OPEX line for the franchisee.
     #
-    # Total franchisee OPEX = cash OPEX (energy + NaOH + labour + water +
+    # Total franchisee OPEX = cash OPEX (energy + Miscelaneous + labour + water +
     #                          logistics) + annual lease payment
     #
     # Buy-price basis = total OPEX per ton (including lease)
@@ -1356,7 +1354,7 @@ def update_franchise(
 
     fr_capex_per_mod   = r1["capex_total"]
     fr_lease_yr        = fr_capex_per_mod / lifespan    # annual lease payment
-    fr_cash_opex_yr    = (r1["energy_yr"] + r1["naoh_yr"] +
+    fr_cash_opex_yr    = (r1["energy_yr"] + r1["misc_yr"] +
                           r1["labor_yr"] + r1["water_yr"] +
                           r1["logistics_yr"])           # pure cash costs
     fr_total_opex_yr   = fr_cash_opex_yr + fr_lease_yr  # total incl. lease
@@ -1847,7 +1845,7 @@ def generate_pdf_report(
     # Total franchisee OPEX = cash OPEX + annual lease
     # Buy price basis = total OPEX per ton (incl. lease)
     # EBITDA = revenue − total OPEX (after lease cost)
-    fr_cash_opex_y = (r1["energy_yr"] + r1["naoh_yr"] +
+    fr_cash_opex_y = (r1["energy_yr"] + r1["misc_yr"] +
                       r1["labor_yr"] + r1["water_yr"] +
                       r1["logistics_yr"])
     fr_capex_mod   = r1["capex_total"]
@@ -2106,7 +2104,7 @@ def generate_pdf_report(
     s.append(_HR(width=CW, thickness=1.5, color=_GL, spaceAfter=8))
     s.append(_kpi_block([
         ("Energy/yr",       fmt_usd(r["energy_yr"])),
-        ("NaOH/yr",         fmt_usd(r["naoh_yr"])),
+        ("Misc/yr",         fmt_usd(r["misc_yr"])),
         ("Labor/yr",        fmt_usd(r["labor_yr"])),
         ("Water/yr",        fmt_usd(r["water_yr"])),
         ("Logistics/yr",    fmt_usd(r["logistics_yr"])),
@@ -2118,7 +2116,7 @@ def generate_pdf_report(
     op_d = [["Cost Item", "$/year", "$/t cellulose", "Basis"]]
     for item, val, basis in [
         ("Energy",       r["energy_yr"],    "Grid kWh × $0.08 / $0 if CHP"),
-        ("NaOH (alkali)",r["naoh_yr"],      f"{NAOH_T_PER_MOD:.3f} t/day/mod × ${NAOH_PRICE}/t"),
+        ("Misc (Miscelaneus)",r["misc_yr"],      f"{MISC_T_PER_MOD:.3f} t/day/mod × ${MISC_PRICE}/t"),
         ("Labor",        r["labor_yr"],     f"${LABOR_PER_MODULE:,}/mod/yr  8 operators"),
         ("Water treat.", r["water_yr"],     f"${WATER_PER_MOD}/day/mod  99% recovery"),
         ("Logistics",    r["logistics_yr"], f"${logistics_cost}/t × {r['biomass_process']:.0f} t/day × {OP_DAYS} days"),
@@ -2290,8 +2288,8 @@ def generate_pdf_report(
         ["Parameter", "Value", "Source"],
         ["Operating days/yr",     f"{OP_DAYS} days",          "35 days scheduled maintenance"],
         ["Process efficiency",     f"{PROC_EFFICIENCY*100:.0f}%", "Nanoweave Input Sheet"],
-        ["NaOH ratio",            "10:1 biomass:NaOH",        "Lab experiment"],
-        ["NaOH price",            f"${NAOH_PRICE}/ton",        "Market reference 2025"],
+        ["Miscelaneus ratio",            "Other chemicals per ton",        "Lab experiment"],
+        ["Misc price",            f"${MISC_PRICE}/ton",        "Chemicals and others"],
         ["Labor per module/yr",   f"${LABOR_PER_MODULE:,}",   "Output Sheet"],
         ["Water cost",            f"${WATER_PER_MOD}/day/mod", "Output Sheet  99% recovery"],
         ["Biomass logistics",     f"${logistics_cost}/t wet",  "User input — site-specific"],
